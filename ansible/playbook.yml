@@ -1,0 +1,54 @@
+- hosts: web
+  become: yes
+  tasks:
+    - name: Update and upgrade packages
+      yum:
+        name: "*"
+        state: latest
+
+    - name: Install Java JDK
+      yum:
+        name: java-1.8.0-amazon-corretto-devel
+        state: present
+
+    - name: Install Maven
+      yum:
+        name: maven
+        state: present
+
+    - name: Install Git
+      yum:
+        name: git
+        state: present
+
+    - name: Install Tomcat 9
+      yum:
+        name: tomcat9
+        state: present
+
+    - name: Start and enable Tomcat
+      service:
+        name: tomcat9
+        state: started
+        enabled: yes
+
+    - name: Clone the Weather App repository
+      git:
+        repo: 'https://github.com/AmalSunny992/Hands-On-Ansible-Terraform.git'
+        dest: /tmp/weather-app
+
+    - name: Build the Weather App
+      command: mvn -f /tmp/weather-app/weatherapp/weatherapp_main/pom.xml clean package
+      args:
+        creates: /tmp/weather-app/weatherapp/weatherapp_main/target/weather-app.war
+
+    - name: Copy the WAR file to Tomcat webapps directory
+      copy:
+        src: /tmp/weather-app/weatherapp/weatherapp_main/target/weather-app.war
+        dest: /var/lib/tomcat9/webapps/weather-app.war
+        remote_src: yes
+
+    - name: Restart Tomcat
+      service:
+        name: tomcat9
+        state: restarted
